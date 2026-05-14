@@ -18,10 +18,26 @@ const Upload = ({ onComplete }: UploadProps) => {
     const processFile = (selectedFile: File) => {
         if (!isSignedIn) return;
 
+        const MAX_UPLOAD_BYTES = 10 * 1024 * 1024; // keep in shared constants
+        const ALLOWED_TYPES = new Set(["image/jpeg", "image/png"]);
+        if (!ALLOWED_TYPES.has(selectedFile.type) || selectedFile.size > MAX_UPLOAD_BYTES) {
+           return;
+        }
+
         setFile(selectedFile);
         setProgress(0);
 
         const reader = new FileReader();
+
+        reader.onerror = () => {
+            setFile(null);
+            setProgress(0);
+        };
+        reader.onabort = () => {
+            setFile(null);
+            setProgress(0);
+        };
+
         reader.onload = (e) => {
             const base64Data = e.target?.result as string;
 
@@ -101,7 +117,7 @@ const Upload = ({ onComplete }: UploadProps) => {
                                 "Sign in or sign up with Puter to upload"
                             )}
                         </p>
-                        <p className="help">Maximum file size 50 MB.</p>
+                        <p className="help">Maximum file size 10 MB.</p>
                     </div>
 
                 </div>
