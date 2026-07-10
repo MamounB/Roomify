@@ -1,8 +1,16 @@
 export const HOSTING_CONFIG_KEY = "roomify_hosting_config";
 export const HOSTING_DOMAIN_SUFFIX = ".puter.site";
 
+const isHostedHostname = (url: string): boolean => {
+    try {
+        return new URL(url).hostname.endsWith(HOSTING_DOMAIN_SUFFIX);
+    } catch {
+        return false;
+    }
+};
+
 export const isHostedUrl = (value: unknown): value is string =>
-    typeof value === "string" && value.includes(HOSTING_DOMAIN_SUFFIX);
+    typeof value === "string" && isHostedHostname(value);
 
 export const createHostingSlug = () =>
     `roomify-${Date.now().toString(36)}-${Math.random()
