@@ -85,7 +85,10 @@ export const fetchBlobFromUrl = async (
     }
 
     try {
-        const response = await fetch(url);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30_000);
+        const response = await fetch(url, { signal: controller.signal });
+        clearTimeout(timeoutId);
         if (!response.ok) throw new Error("Failed to fetch image");
         return {
             blob: await response.blob(),
