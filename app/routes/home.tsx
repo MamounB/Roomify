@@ -43,7 +43,7 @@ export default function Home() {
         navigate(`/visualizer/${newId}`, {
             state: {
                 initialImage: saved.sourceImage,
-                initialRenderedImage: saved.renderedImage || null,
+                initialRender: saved.renderedImage || null,
                 name
             }
         });
