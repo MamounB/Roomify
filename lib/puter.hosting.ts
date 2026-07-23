@@ -16,6 +16,7 @@ export const getOrCreateHostingConfig = async (): Promise<HostingConfig | null> 
     if (existing?.subdomain) return { subdomain: existing.subdomain };
 
     const subdomain = createHostingSlug();
+
     const created = await createHostingWithRetry(subdomain);
 
     if (!created) {
