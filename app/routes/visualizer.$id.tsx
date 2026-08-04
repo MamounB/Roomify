@@ -18,6 +18,7 @@ const VisualizerId = () => {
 
     const [isProcessing, setIsProcessing] = useState(false);
     const [currentImage, setCurrentImage] = useState<string | null>(null);
+    const [error, setError] = useState<string | null>(null);
 
     const handleBack = () => navigate('/');
 
@@ -26,6 +27,7 @@ const VisualizerId = () => {
 
         try {
             setIsProcessing(true);
+            setError(null);
             const result = await generate3DView({sourceImage: item.sourceImage});
 
             if (result.renderedImage) {
@@ -46,9 +48,13 @@ const VisualizerId = () => {
                     setProject(saved);
                     setCurrentImage(saved.renderedImage || result.renderedImage);
                 }
+                hasInitialGenerated.current = true;
+            } else {
+                setError('Failed to generate image');
             }
-        } catch (error) {
-            console.error('Generation failed', error);
+        } catch (err: any) {
+            console.error('Generation failed', err);
+            setError(err.message || 'Generation failed');
         } finally {
             setIsProcessing(false);
         }
@@ -65,14 +71,21 @@ const VisualizerId = () => {
 
             setIsProjectLoading(true);
 
-            const fetchedProject = await getProjectById({ id });
+            try {
+                const fetchedProject = await getProjectById({ id });
 
-            if (!isMounted) return;
+                if (!isMounted) return;
 
-            setProject(fetchedProject);
-            setCurrentImage(fetchedProject?.renderedImage || null);
-            setIsProjectLoading(false);
-            hasInitialGenerated.current = false;
+                setProject(fetchedProject);
+                setCurrentImage(fetchedProject?.renderedImage || null);
+            } catch (error) {
+                console.error("Failed to load project:", error);
+            } finally {
+                if (isMounted) {
+                    setIsProjectLoading(false);
+                    hasInitialGenerated.current = false;
+                }
+            }
         };
 
         loadProject();
@@ -86,7 +99,8 @@ const VisualizerId = () => {
         if (
             isProjectLoading ||
             hasInitialGenerated.current ||
-            !project?.sourceImage
+            !project?.sourceImage ||
+            error
         )
             return;
 
@@ -96,9 +110,8 @@ const VisualizerId = () => {
             return;
         }
 
-        hasInitialGenerated.current = true;
         void runGeneration(project);
-    }, [project, isProjectLoading]);
+    }, [project, isProjectLoading, error]);
 
     return (
         <div className="visualizer">
@@ -155,6 +168,21 @@ const VisualizerId = () => {
                                             <RefreshCcw className="spinner" />
                                             <span className="title">Rendering...</span>
                                             <span className="title">Generating your 3D visualization...</span>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {error && (
+                                    <div className="render-area">
+                                        <div className="rendering-card error">
+                                            <span className="title text-red-500">Generation Failed</span>
+                                            <span className="text-sm mb-4">{error}</span>
+                                            <Button
+                                                onClick={() => project && runGeneration(project)}
+                                                className="retry-button"
+                                            >
+                                                <RefreshCcw className="w-4 h-4 mr-2" /> Retry
+                                            </Button>
                                         </div>
                                     </div>
                                 )}
