@@ -28,7 +28,9 @@ export const getHostedUrl = (
 ): string | null => {
     if (!hosting?.subdomain) return null;
     const host = normalizeHost(hosting.subdomain);
-    return `https://${host}/${filePath}`;
+    // Ensure filePath does not have a leading slash as we are prepending one
+    const cleanPath = filePath.startsWith('/') ? filePath.substring(1) : filePath;
+    return `https://${host}/${cleanPath}`;
 };
 
 export const getImageExtension = (contentType: string, url: string): string => {
@@ -43,10 +45,12 @@ export const getImageExtension = (contentType: string, url: string): string => {
                 : ext;
     }
 
-    const dataMatch = url.match(/^data:image\/([a-z0-9+.-]+);/i);
-    if (dataMatch?.[1]) {
-        const ext = dataMatch[1].toLowerCase();
-        return ext === "jpeg" ? "jpg" : ext;
+    if (url.startsWith("data:")) {
+        const dataMatch = url.match(/^data:image\/([a-z0-9+.-]+);/i);
+        if (dataMatch?.[1]) {
+            const ext = dataMatch[1].toLowerCase();
+            return ext === "jpeg" ? "jpg" : ext;
+        }
     }
 
     const extMatch = url.match(/\.([a-z0-9]+)(?:$|[?#])/i);

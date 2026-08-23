@@ -5,7 +5,6 @@ import {getOrCreateHostingConfig, uploadImagetoHosting} from "./puter.hosting";
 import {isHostedUrl} from "./utils";
 import {PUTER_WORKER_URL} from "./constants";
 
-puter.setAppID('app-910a0c3e-7390-4b3f-aa2e-ed62e323671b');
 
 export const  signIn = async () => await puter.auth.signIn();
 
@@ -33,8 +32,16 @@ export const createProject = async ({item, visibility = "private"}: CreateProjec
     const hostedSource = projectId ?
         await uploadImagetoHosting({hosting, url: item.sourceImage, projectId, label: 'source', }) : null;
 
+    if (hostedSource) {
+        console.log(`[createProject] Hosted source image: ${hostedSource.url}`);
+    }
+
     const hostedRender = projectId && item.renderedImage ?
         await uploadImagetoHosting({hosting, url: item.renderedImage, projectId, label: 'rendered', }) : null;
+
+    if (hostedRender) {
+        console.log(`[createProject] Hosted rendered image: ${hostedRender.url}`);
+    }
 
     const resolvedSource = hostedSource?.url || (isHostedUrl(item.sourceImage)
         ? item.sourceImage
@@ -86,6 +93,7 @@ export const createProject = async ({item, visibility = "private"}: CreateProjec
         return data?.project ?? null;
     } catch (e) {
         console.log('Failed to save project', e);
+        return null;
     }
 
 }
@@ -121,8 +129,10 @@ export const getProjectById = async ({ id }: { id: string }) => {
     console.log("Fetching project with ID:", id);
 
     try {
+        const url = `${PUTER_WORKER_URL}/api/projects/get?id=${encodeURIComponent(id)}`;
+        console.log("Fetching from worker URL:", url);
         const response = await puter.workers.exec(
-            `${PUTER_WORKER_URL}/api/projects/get?id=${encodeURIComponent(id)}`,
+            url,
             { method: "GET" },
         );
 

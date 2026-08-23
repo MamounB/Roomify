@@ -22,9 +22,9 @@ export default function Home() {
     const isCreatingProjectRef = useRef(false);
 
     const handleUploadComplete = async (base64Image: string) => {
-        if (isCreatingProjectRef.current) return false;
 
         try {
+            if (isCreatingProjectRef.current) return false;
             isCreatingProjectRef.current = true;
             const newId = Date.now().toString();
             const name = `Residence ${newId}`;
@@ -64,7 +64,9 @@ export default function Home() {
 
             setProjects(items);
         }
-    })
+
+        fetchProjects();
+    }, [])
 
   return (
       <div className="home">

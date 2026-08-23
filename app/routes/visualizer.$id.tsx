@@ -5,6 +5,7 @@ import {Box, Download, RefreshCcw, Share, Share2, X} from "lucide-react";
 import Button from "../../Components/ui/Button";
 import type {AuthContext, DesignItem} from "../../type";
 import {createProject, getProjectById} from "../../lib/puter.action";
+import {ReactCompareSlider, ReactCompareSliderImage} from "react-compare-slider";
 
 const VisualizerId = () => {
     const { id } = useParams();
@@ -21,6 +22,24 @@ const VisualizerId = () => {
     const [error, setError] = useState<string | null>(null);
 
     const handleBack = () => navigate('/');
+    const handleExport = useCallback(async () => {
+        if (!currentImage) return;
+
+        try {
+            const response = await fetch(currentImage);
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `render-${project?.name || id}.png`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error('Failed to export image', error);
+        }
+    }, [currentImage, project?.name, id]);
 
     const runGeneration = async (item: DesignItem) => {
         if (!id || !item.sourceImage) return;
@@ -71,21 +90,14 @@ const VisualizerId = () => {
 
             setIsProjectLoading(true);
 
-            try {
-                const fetchedProject = await getProjectById({ id });
+            const fetchedProject = await getProjectById({ id });
 
-                if (!isMounted) return;
+            if (!isMounted) return;
 
-                setProject(fetchedProject);
-                setCurrentImage(fetchedProject?.renderedImage || null);
-            } catch (error) {
-                console.error("Failed to load project:", error);
-            } finally {
-                if (isMounted) {
-                    setIsProjectLoading(false);
-                    hasInitialGenerated.current = false;
-                }
-            }
+            setProject(fetchedProject);
+            setCurrentImage(fetchedProject?.renderedImage || null);
+            setIsProjectLoading(false);
+            hasInitialGenerated.current = false;
         };
 
         loadProject();
@@ -99,8 +111,7 @@ const VisualizerId = () => {
         if (
             isProjectLoading ||
             hasInitialGenerated.current ||
-            !project?.sourceImage ||
-            error
+            !project?.sourceImage
         )
             return;
 
@@ -110,8 +121,9 @@ const VisualizerId = () => {
             return;
         }
 
+        hasInitialGenerated.current = true;
         void runGeneration(project);
-    }, [project, isProjectLoading, error]);
+    }, [project, isProjectLoading]);
 
     return (
         <div className="visualizer">
@@ -138,8 +150,8 @@ const VisualizerId = () => {
                         <div className="panel-actions">
                             <Button
                                 size="sm"
-                                onClick={() => {}}
-                                className="export"
+                                onClick={handleExport}
+                                className="export cursor-pointer"
                                 disabled={!currentImage}
                             >
                                 <Download className="w-4 h-4 mr-2" /> Export
@@ -147,7 +159,7 @@ const VisualizerId = () => {
                             <Button
                                 size="sm"
                                 onClick={() => {}}
-                                className="share"
+                                className="share cursor-pointer"
                             >
                                 <Share2 className="w-4 h-4 mr-2" /> Share
                             </Button>
@@ -189,6 +201,36 @@ const VisualizerId = () => {
                             </div>
                         )
                         }
+                    </div>
+                </div>
+
+                <div className="panel compare">
+                    <div className="panel-header">
+                        <div className="panel-meta">
+                            <p>Comparison</p>
+                            <h3>Before and After</h3>
+                        </div>
+                        <div className="hint">Drag to compare</div>
+                    </div>
+
+                    <div className="compare-stage">
+                        {project?.sourceImage && currentImage ? (
+                            <ReactCompareSlider
+                                defaultValue={50}
+                                style={{ width: '100%', height: 'auto'}}
+                                itemOne={
+                                    <ReactCompareSliderImage src={project?.sourceImage} alt="before" className="compare-img" />
+                                }
+                                itemTwo={
+                                    <ReactCompareSliderImage src={currentImage || project?.renderedImage} alt="after" className="compare-img" />
+                                } />
+                        ) : (
+                            <div className="compare-fallback">
+                                {project?.sourceImage && (
+                                    <img src={project.sourceImage} alt="Before" className="compare-img" />
+                                )}
+                            </div>
+                        )}
                     </div>
                 </div>
             </section>
