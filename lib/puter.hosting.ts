@@ -70,26 +70,47 @@ export const uploadImagetoHosting = async ({ hosting, url, projectId, label}: St
     if (isHostedUrl(url)) return { url};
 
     try {
-        const resolved = label === "rendered"
-            ? await imageUrlToPngBlob(url)
-                .then((blob) => blob ? { blob, contentType: "image/png" } : null)
-            : await fetchBlobFromUrl(url);
+        console.log(`[upload:${label}] resolving blob for url starting with: ${url.substring(0, 30)}...`);
+        let resolved;
+        if (label === "rendered") {
+            try {
+                const pngBlob = await imageUrlToPngBlob(url);
+                if (pngBlob) {
+                    resolved = { blob: pngBlob, contentType: "image/png" };
+                } else {
+                    console.warn(`[upload:${label}] imageUrlToPngBlob returned null, falling back to fetchBlobFromUrl`);
+                }
+            } catch (err) {
+                console.warn(`[upload:${label}] imageUrlToPngBlob failed, falling back to fetchBlobFromUrl:`, err);
+            }
+        }
 
-        if (!resolved) return null;
+        if (!resolved) {
+            resolved = await fetchBlobFromUrl(url);
+        }
 
-        const contentType = resolved.contentType || resolved.blob.type || '';
+        if (!resolved) {
+            console.error(`[upload:${label}] failed to resolve blob from url`);
+            return null;
+        }
+
+        const contentType = resolved.contentType || resolved.blob.type || 'image/png';
         const ext = getImageExtension(contentType, url);
         const dir = `projects/${projectId}`;
         const filePath = `${dir}/${label}.${ext}`;
+
+        console.log(`[upload:${label}] writing to Puter FS: ${filePath} (type: ${contentType}, size: ${resolved.blob.size})`);
 
         const uploadFile = new File([resolved.blob], `${label}.${ext}`, {
             type: contentType,
         });
 
         await puter.fs.mkdir(dir, { createMissingParents: true });
-        await puter.fs.write(filePath, uploadFile);
+        const writeResult = await puter.fs.write(filePath, uploadFile);
+        console.log(`[upload:${label}] write result:`, writeResult);
 
         const hostedUrl = getHostedUrl({subdomain: hosting.subdomain}, filePath);
+        console.log(`[upload:${label}] generated hosted url: ${hostedUrl}`);
 
         return hostedUrl ? { url: hostedUrl } : null;
     } catch (e) {

@@ -20,7 +20,7 @@ const Upload = ({ onComplete }: UploadProps) => {
         if (!isSignedIn) return;
 
         const MAX_UPLOAD_BYTES = 10 * 1024 * 1024; // keep in shared constants
-        const ALLOWED_TYPES = new Set(["image/jpeg", "image/png"]);
+        const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
         if (!ALLOWED_TYPES.has(selectedFile.type) || selectedFile.size > MAX_UPLOAD_BYTES) {
            return;
         }
@@ -102,7 +102,7 @@ const Upload = ({ onComplete }: UploadProps) => {
                     <input
                         type="file"
                         className="drop-input"
-                        accept=".jpg, .jpeg, .png"
+                        accept=".jpg, .jpeg, .png, .webp"
                         disabled={!isSignedIn}
                         onChange={handleChange}
                     />
